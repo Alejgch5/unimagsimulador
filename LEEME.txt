@@ -1,0 +1,30 @@
+VÉSICA — CÓDIGO COMPLETO ACTUALIZADO
+
+CÓMO ABRIR
+1. Descomprime toda la carpeta.
+2. Abre index.html en Chrome, Edge o Firefox.
+3. Para editar, abre la carpeta en Visual Studio Code.
+No necesita npm ni una compilación.
+Opcional: usa la extensión Live Server de VS Code, o ejecuta:
+python -m http.server 8000
+Luego abre http://localhost:8000.
+
+ARCHIVOS
+index.html: estructura, textos y paneles.
+style.css: diseño, colores y animaciones visuales.
+app.js: etapas del procedimiento, materiales y esquemas.
+clinical.js: monitor, respuestas programadas, voz, drenaje e incidencias.
+assets/: imágenes necesarias para las escenas y los materiales.
+
+USO
+Selecciona el escenario masculino, femenino o de trauma.
+Completa las etapas en orden. Usa Pausar paciente para detener la evolución.
+En inserción, el deslizador marca el destino de un avance gradual.
+Abre Control del expositor para activar incidencias en las etapas habilitadas.
+La voz requiere pulsar Activar voz y depende de las voces del navegador.
+Los cambios locales no actualizan automáticamente el sitio publicado.
+
+ALCANCE
+Proyecto académico estudiantil no oficial, sin aval institucional.
+Simulación 2D con guiones docentes, no modelo fisiológico validado ni equipo
+clínico de alta fidelidad. Los valores y tiempos son ilustrativos.
