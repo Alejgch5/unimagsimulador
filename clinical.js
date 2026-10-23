@@ -1,70 +1,372 @@
-'use strict';
-// Scripted educational responses, not a validated physiological model.
-const clinical = {
-  elapsed:0, target:0, paused:false, voice:false, event:null, stopped:false, assessed:false, called:false,
-  reassured:false, drainage:0, initial:900, hr:104, rr:22, sys:154, dia:88, pain:8,
-  log:[], lastMessage:'', lastPaint:0, frame:0, announced:new Set()
-};
-const clinicalDefaults={male:{hr:104,rr:22,sys:154,dia:88,pain:8,volume:900},female:{hr:96,rr:20,sys:142,dia:84,pain:6,volume:650},trauma:{hr:108,rr:24,sys:118,dia:76,pain:7,volume:0}};
-const incidentLabels={resistance:'Resistencia durante el avance',vagal:'Mareo y respuesta vagal',obstruction:'Acodamiento del tubo de drenaje',contamination:'Material contaminado'};
-function recordClinical(message){clinical.log.push({time:Math.floor(clinical.elapsed),message});if(clinical.log.length>80)clinical.log.shift();$('#clinical-log').innerHTML=clinical.log.map(e=>'<li><time>'+String(Math.floor(e.time/60)).padStart(2,'0')+':'+String(e.time%60).padStart(2,'0')+'</time> '+esc(e.message)+'</li>').reverse().join('');}
-function sayClinical(message){if(clinical.lastMessage===message)return;clinical.lastMessage=message;$('#patient-voice').textContent=message;if(clinical.voice&&'speechSynthesis' in window){window.speechSynthesis.cancel();const u=new SpeechSynthesisUtterance(message);u.lang='es-CO';u.rate=.9;window.speechSynthesis.speak(u);}}
-function resetClinical(){const d=clinicalDefaults[state.scenario];Object.assign(clinical,{elapsed:0,target:0,paused:false,event:null,stopped:false,assessed:false,called:false,reassured:false,drainage:0,initial:d.volume,hr:d.hr,rr:d.rr,sys:d.sys,dia:d.dia,pain:d.pain,log:[],lastMessage:'',announced:new Set()});window.speechSynthesis?.cancel();$('#clinical-pause').textContent='Pausar paciente';$('#clinical-pause').setAttribute('aria-pressed','false');recordClinical('Inicio del caso. Valores y evolución programados para docencia.');updateClinical(0);}
-function obstructed(){return clinical.event==='obstruction'||(state.step>=10&&state.bag<65);}
-function clinicalFlow(){return state.scenario!=='trauma'&&state.insertion>=82&&!obstructed()&&!clinical.event&&!clinical.paused&&!paused;}
-function updateClinical(dt){if(clinical.paused||paused||document.hidden)dt=0;clinical.elapsed+=dt;
-if(dt>0&&state.step===7&&!clinical.event&&!busy&&clinical.target>state.insertion){baseAdvance(Math.min(clinical.target,state.insertion+dt*8));const slider=$('#advance');if(slider)slider.value=state.insertion;}
-const d=clinicalDefaults[state.scenario];if(clinicalFlow())clinical.drainage=Math.min(clinical.initial-40,clinical.drainage+dt*12);
-const relief=clinical.initial?clinical.drainage/(clinical.initial-40):0;
-let pain=Math.max(2,d.pain-relief*(d.pain-2));if(clinical.reassured)pain=Math.max(2,pain-.5);if(state.step===7&&state.insertion>0&&state.insertion<82)pain=Math.min(8,pain+1);
-let hr=d.hr-relief*(d.hr-78)-(clinical.reassured?3:0),rr=d.rr-relief*(d.rr-16),sys=d.sys-relief*(d.sys-126),dia=d.dia-relief*(d.dia-78);
-if(clinical.event==='resistance'){pain=clinical.stopped?7:9;hr=clinical.stopped?104:116;rr=clinical.stopped?22:26;sys=164;dia=94;}
-if(clinical.event==='vagal'){hr=48;rr=18;sys=86;dia=52;pain=5;}
-if(clinical.event==='obstruction'){pain=Math.max(5,pain);hr=Math.max(100,hr);}
-const a=dt===0?0:1-Math.exp(-dt/2);for(const [key,target] of Object.entries({hr,rr,sys,dia,pain}))clinical[key]+=(target-clinical[key])*a;
-$('#v-hr').textContent=Math.round(clinical.hr);$('#v-rr').textContent=Math.round(clinical.rr);$('#v-bp').textContent=Math.round(clinical.sys)+'/'+Math.round(clinical.dia);$('#v-pain').textContent=Math.round(clinical.pain)+'/10';$('#v-drain').textContent=Math.round(clinical.drainage);$('#v-bladder').textContent=state.scenario==='trauma'?'Sin estimar':Math.round(clinical.initial-clinical.drainage)+' mL';
-$('#clinical-clock').textContent=String(Math.floor(clinical.elapsed/60)).padStart(2,'0')+':'+String(Math.floor(clinical.elapsed)%60).padStart(2,'0');
-$('#patient-status').textContent=clinical.event?incidentLabels[clinical.event]:relief>.75?'Alivio progresivo del globo vesical':state.scenario==='trauma'?'Sospecha de lesión uretral':'Retención urinaria · valoración continua';
-$('#patient-status').classList.toggle('incident',!!clinical.event);$('#clinical-monitor').classList.toggle('incident',!!clinical.event);$('#clinical-monitor').classList.toggle('frozen',clinical.paused||paused);
-$('#clinical-alert').hidden=!clinical.event;
-$('#clinical-alert-text').textContent=clinical.event?({resistance:'El maniquí comunica dolor y el avance está bloqueado. Detén la maniobra, valora y solicita ayuda; no fuerces.',vagal:'El guion muestra bradicardia e hipotensión. Detén la maniobra, valora al paciente y solicita ayuda inmediata.',obstruction:'El flujo está interrumpido. Inspecciona el tubo y la posición del colector sin desconectar el sistema.',contamination:'Se perdió la esterilidad. Sustituye el material contaminado antes de continuar.'}[clinical.event]):'';
-let message=state.scenario==='trauma'?'Me duele desde el accidente.':relief>.75?'La presión está disminuyendo. Me siento más aliviado.':state.insertion>=82?'Siento que empieza a disminuir la presión.':state.step===7?'Siento molestia; avance con suavidad.':clinical.reassured?'Gracias por explicarme. Voy a intentar relajarme.':'Tengo presión y dolor en la parte baja del abdomen.';
-if(clinical.event)message={resistance:clinical.stopped?'Gracias por detenerse. Todavía me duele.':'¡Me duele! Siento mucha molestia.',vagal:'Me estoy mareando… me siento débil.',obstruction:'Sigo sintiendo presión.',contamination:'La práctica se pausa para recuperar la esterilidad.'}[clinical.event];sayClinical(message);
-$('#drainage-state').textContent=clinical.paused||paused?'Evolución pausada':clinical.event?'Flujo detenido en este guion':state.insertion<82?'Esperando acceso a la vejiga':obstructed()?'Revisar altura del colector':relief>=1?'Drenaje del caso completado':'Drenaje visible · tiempo abreviado';
-$('#reservoir-fill').style.height=(clinical.initial?Math.max(0,(1-relief)*86):0)+'%';$('#collector-fill').style.height=(relief*86)+'%';$('#fluid-connection').classList.toggle('flowing',clinicalFlow()&&relief<1);
-$('#breathing-view').style.setProperty('--breath-period',(60/clinical.rr)+'s');$('#breathing-view').classList.toggle('frozen',clinical.paused||paused);
-for(const e of document.querySelectorAll('[data-incident]')){const id=e.dataset.incident;e.disabled=busy||clinical.paused||!!clinical.event||state.scenario==='trauma'||(id==='resistance'&&(state.step!==7||state.insertion>=82))||(id==='vagal'&&state.step<7)||(id==='obstruction'&&state.insertion<82)||(id==='contamination'&&(state.step<4||state.step>6));}
-$('#clinical-resume').disabled=!clinical.event||!clinical.assessed||((clinical.event==='resistance'||clinical.event==='vagal')&&(!clinical.stopped||!clinical.called));
-if(clinical.event||clinical.paused){const slider=$('#advance');if(slider)slider.disabled=true;$('#next').disabled=true;}
-if(state.recorded&&!clinical.announced.has('end')){clinical.announced.add('end');recordClinical('Registro completado. Volumen drenado simulado: '+Math.round(clinical.drainage)+' mL. Dolor: '+Math.round(clinical.pain)+'/10.');}
-if(state.insertion>=82&&!clinical.announced.has('urine')){clinical.announced.add('urine');recordClinical('Primer retorno de orina observado; falta confirmar la posición completa del balón.');}
-if(state.confirmed&&!clinical.announced.has('confirmed')){clinical.announced.add('confirmed');recordClinical('Posición intravesical comprobada antes del inflado.');}
-if(state.balloon&&!clinical.announced.has('balloon')){clinical.announced.add('balloon');recordClinical('Balón inflado después de confirmar la posición.');}
-$('#clinical-summary').hidden=!state.recorded&&state.traumaStep!==3;
-$('#summary-text').textContent=state.scenario==='trauma'?'Maniobra suspendida y valoración especializada solicitada.':state.done.length+' etapas · '+Math.round(clinical.drainage)+' mL drenados (guion) · dolor '+Math.round(clinical.pain)+'/10. Revisa la secuencia de decisiones en el registro.';
+/* Browser-only presentation. Clinical decisions and signs come from engine.js. */
+
+/** Native Spanish speech with bundled, offline synthetic audio as a fallback. */
+export class PatientVoice {
+  constructor({onStatus} = {}) {
+    this.enabled = true;
+    this.speaking = false;
+    this._synth = globalThis.speechSynthesis;
+    this._nativeAvailable = Boolean(this._synth && typeof globalThis.SpeechSynthesisUtterance !== 'undefined');
+    this._audio = typeof globalThis.Audio === 'function' ? new Audio() : null;
+    if (this._audio) this._audio.preload = 'auto';
+    this.available = this._nativeAvailable || Boolean(this._audio);
+    this._onStatus = typeof onStatus === 'function' ? onStatus : () => {};
+    this._activated = false;
+    this._paused = false;
+    this._disposed = false;
+    this._active = null;
+    this._activeKind = null;
+    this._latest = null;
+    this._pending = null;
+    this._lastId = null;
+    this._lastText = '';
+    this._watchdog = null;
+    this._manifest = {};
+    this._manifestLoaded = false;
+    this._nativeBroken = false;
+    this._voices = this._synth?.getVoices?.() || [];
+    this._message = this.available ? 'Voz activada · se iniciará al comenzar el caso' : 'Voz no disponible · lee los subtítulos';
+    this._refreshVoices = () => { this._voices = this._synth?.getVoices?.() || []; };
+    this._synth?.addEventListener?.('voiceschanged', this._refreshVoices);
+    this.ready = this._loadManifest();
+    this._emit();
+  }
+
+  get status() { return this._message; }
+
+  async _loadManifest() {
+    if (this._audio && typeof globalThis.fetch === 'function') {
+      try {
+        const response = await fetch(new URL('./assets/voice/manifest.json', import.meta.url));
+        if (!response.ok) throw new Error('Manifest unavailable');
+        const entries = await response.json();
+        // Restrict fallback audio to bundled files, never remote user-supplied URLs.
+        for (const [phrase, path] of Object.entries(entries)) {
+          if (typeof path === 'string' && /^assets\/voice\/[a-zA-Z0-9_.-]+\.(mp3|wav|ogg)$/.test(path)) this._manifest[phrase] = path;
+        }
+      } catch { /* Native voices can still be used. A failed clip never hides text. */ }
+    }
+    this._manifestLoaded = true;
+    if (this._disposed) return;
+    this.available = Boolean(this._chooseVoice() || (this._audio && Object.keys(this._manifest).length));
+    if (this._pending && this._activated && this.enabled && !this._paused && !this._active) {
+      const request = this._pending;
+      this._pending = null;
+      this._speak(request);
+    } else if (!this.available) this._emit('No hay voz en español disponible · lee los subtítulos');
+  }
+
+  _emit(message) {
+    if (message) this._message = message;
+    this._onStatus({message: this._message, enabled: this.enabled, speaking: this.speaking, available: this.available});
+  }
+
+  /** Call directly within a click/tap. Await ready before enabling the start control. */
+  activate(text, sex = 'male') {
+    if (this._disposed) return;
+    this._activated = true;
+    this._paused = false;
+    this.enabled = true;
+    this._voices = this._synth?.getVoices?.() || [];
+    this.available = Boolean(this._chooseVoice() || this._audio);
+    const request = {text: String(text || this._latest?.text || '').trim(), sex, urgent: false};
+    this._pending = null;
+    this._lastId = null;
+    this._lastText = '';
+    this._cancel();
+    this._synth?.resume();
+    if (request.text) this._speak(request);
+    else this._emit('Voz lista · esperando respuesta del paciente');
+  }
+
+  say(text, {urgent = false, sex = 'male', id} = {}) {
+    if (this._disposed) return;
+    const normalized = String(text || '').trim();
+    if (!normalized) return;
+    const request = {text: normalized, urgent: Boolean(urgent), sex, id};
+    this._latest = request;
+    if (!this.enabled) return;
+    if (!this._activated) {
+      this._pending = request;
+      if (this.available) this._emit('Voz activada · pulsa Comenzar para escuchar al paciente');
+      return;
+    }
+    if (this._paused) { this._pending = request; return; }
+    if ((id !== undefined && id === this._lastId) || normalized === this._lastText) return;
+    this._speak(request);
+  }
+
+  _chooseVoice() {
+    if (!this._nativeAvailable || this._nativeBroken) return undefined;
+    const voices = this._voices.length ? this._voices : this._synth.getVoices() || [];
+    return voices.find(v => /^es[-_]CO$/i.test(v.lang)) || voices.find(v => /^es[-_]ES$/i.test(v.lang)) || voices.find(v => /^es(?:[-_]|$)/i.test(v.lang));
+  }
+
+  _cancel() {
+    clearTimeout(this._watchdog);
+    this._watchdog = null;
+    this._active = null;
+    this._activeKind = null;
+    this.speaking = false;
+    this._synth?.cancel();
+    if (this._audio) { this._audio.pause(); try { this._audio.currentTime = 0; } catch {} }
+  }
+
+  _speak(request) {
+    if (this._disposed || !this.enabled || this._paused) return;
+    this._latest = request;
+    this._pending = null;
+    this._cancel();
+    this._lastId = request.id;
+    this._lastText = request.text;
+    const voice = !request.localOnly && this._chooseVoice();
+    if (!voice) { this._playLocal(request); return; }
+    const utterance = new SpeechSynthesisUtterance(request.text);
+    utterance.voice = voice;
+    utterance.lang = voice.lang;
+    utterance.rate = 0.96;
+    utterance.pitch = request.sex === 'female' ? 1.06 : 0.94;
+    utterance.volume = 1;
+    this._active = utterance;
+    this._activeKind = 'native';
+    const current = () => !this._disposed && this._active === utterance;
+    utterance.onstart = () => {
+      if (!current()) return;
+      clearTimeout(this._watchdog);
+      this.speaking = !this._paused;
+      this._emit(this._paused ? 'Voz en pausa' : 'Paciente hablando');
+    };
+    utterance.onpause = () => {
+      if (!current()) return;
+      this.speaking = false;
+      this._emit('Voz en pausa');
+    };
+    utterance.onresume = () => {
+      if (!current() || this._paused) return;
+      this.speaking = true;
+      this._emit('Paciente hablando');
+    };
+    utterance.onend = () => {
+      if (!current()) return;
+      clearTimeout(this._watchdog);
+      this._active = null;
+      this._activeKind = null;
+      this.speaking = false;
+      this._emit(this._paused ? 'Voz en pausa' : 'Voz lista');
+    };
+    utterance.onerror = event => {
+      if (!current() || event.error === 'canceled' || event.error === 'interrupted') return;
+      this._nativeBroken = true;
+      this._cancel();
+      this._playLocal({...request, localOnly: true});
+    };
+    this._emit('Preparando voz del paciente…');
+    try {
+      this._synth.resume();
+      this._synth.speak(utterance);
+      this._watchdog = setTimeout(() => {
+        if (current() && !this.speaking && !this._paused) {
+          this._nativeBroken = true;
+          this._cancel();
+          this._playLocal({...request, localOnly: true});
+        }
+      }, 2500);
+    } catch {
+      this._nativeBroken = true;
+      this._cancel();
+      this._playLocal({...request, localOnly: true});
+    }
+  }
+
+  _playLocal(request) {
+    if (this._disposed || !this.enabled) return;
+    if (!this._manifestLoaded && this._audio) {
+      this._pending = {...request, localOnly: true};
+      this._emit('Cargando voz sintética local…');
+      return;
+    }
+    const path = this._manifest[request.text];
+    if (!this._audio || !path) {
+      this.speaking = false;
+      this.available = Boolean(this._chooseVoice() || Object.keys(this._manifest).length);
+      this._emit('Esta respuesta no tiene audio disponible · lee los subtítulos');
+      return;
+    }
+    if (this._paused) { this._pending = {...request, localOnly: true}; return; }
+    const audio = this._audio;
+    const token = {};
+    this._active = token;
+    this._activeKind = 'local';
+    this.available = true;
+    audio.src = new URL(path, import.meta.url).href;
+    audio.onplaying = () => {
+      if (this._disposed || this._active !== token) return;
+      this.speaking = !this._paused;
+      this._emit(this._paused ? 'Voz en pausa' : 'Voz sintética local · paciente hablando');
+    };
+    audio.onended = () => {
+      if (this._disposed || this._active !== token) return;
+      this._active = null;
+      this._activeKind = null;
+      this.speaking = false;
+      this._emit('Voz sintética local · lista');
+    };
+    audio.onerror = () => {
+      if (this._disposed || this._active !== token) return;
+      this._active = null;
+      this._activeKind = null;
+      this.speaking = false;
+      this._emit('No se pudo cargar el audio local · lee los subtítulos');
+    };
+    this._emit('Preparando voz sintética local…');
+    this._playAudio(token);
+  }
+
+  _playAudio(token) {
+    try {
+      const playing = this._audio.play();
+      playing?.catch(error => {
+        if (this._disposed || this._active !== token || this._paused) return;
+        this._active = null;
+        this._activeKind = null;
+        this.speaking = false;
+        if (error?.name === 'NotAllowedError') {
+          this._activated = false;
+          this._emit('El navegador bloqueó el audio · pulsa el control de voz para escucharlo');
+        } else this._emit('No se pudo reproducir el audio · lee los subtítulos y reintenta desde el control de voz');
+      });
+    } catch {
+      this.speaking = false;
+      this._emit('No se pudo iniciar el audio · lee los subtítulos');
+    }
+  }
+
+  setEnabled(enabled) {
+    this.enabled = Boolean(enabled);
+    if (!this.enabled) {
+      this._cancel();
+      this._pending = null;
+      this._emit('Voz desactivada · subtítulos disponibles');
+    } else this.activate(this._latest?.text || '', this._latest?.sex || 'male');
+  }
+
+  pause() {
+    if (this._disposed || this._paused) return;
+    this._paused = true;
+    if (this._activeKind === 'local') this._audio.pause();
+    else this._synth?.pause();
+    this.speaking = false;
+    if (this.enabled) this._emit('Voz en pausa');
+  }
+
+  resume() {
+    if (this._disposed || !this._paused) return;
+    this._paused = false;
+    if (!this.enabled) return;
+    if (this._pending) {
+      const request = this._pending;
+      this._pending = null;
+      this._speak(request);
+    } else if (this._activeKind === 'local') this._playAudio(this._active);
+    else { this._synth?.resume(); this._emit(this._active ? 'Reanudando voz…' : 'Voz lista'); }
+  }
+
+  stop() {
+    this._cancel();
+    this._pending = null;
+    this._lastId = null;
+    this._lastText = '';
+    if (!this._disposed) this._emit(this.enabled ? 'Voz detenida' : 'Voz desactivada · subtítulos disponibles');
+  }
+
+  dispose() {
+    if (this._disposed) return;
+    this._disposed = true;
+    this._cancel();
+    this._pending = null;
+    this._synth?.removeEventListener?.('voiceschanged', this._refreshVoices);
+    if (this._audio) {
+      this._audio.onplaying = null;
+      this._audio.onended = null;
+      this._audio.onerror = null;
+      this._audio.removeAttribute('src');
+      this._audio.load();
+    }
+    this._onStatus = () => {};
+  }
 }
-function setIncident(id){if(!incidentLabels[id]||clinical.event||busy||clinical.paused||state.scenario==='trauma')return false;
-if(id==='resistance'&&(state.step!==7||state.insertion>=82))return false;if(id==='vagal'&&state.step<7)return false;if(id==='obstruction'&&state.insertion<82)return false;if(id==='contamination'&&(state.step<4||state.step>6))return false;
-clinical.target=state.insertion;clinical.event=id;clinical.stopped=false;clinical.assessed=false;clinical.called=false;recordClinical('Docente activa: '+incidentLabels[id]+'.');updateClinical(0);return true;}
-function handleClinical(action){if(action==='reassure'){clinical.reassured=true;recordClinical('Se explica el procedimiento y se acompaña al paciente.');}
-if(action==='stop'){clinical.stopped=true;if(busy&&!paused)$('#pause').click();recordClinical('Maniobra detenida.');}
-if(action==='assess'){clinical.assessed=true;recordClinical('Valoración del maniquí y revisión del monitor, dolor, sonda y drenaje.');}
-if(action==='call'){clinical.called=true;recordClinical('Solicitud de ayuda: comunicar situación, antecedentes, evaluación y recomendación.');}
-if(action==='resume'&&clinical.event){if(!clinical.assessed||(['resistance','vagal'].includes(clinical.event)&&(!clinical.stopped||!clinical.called)))return;
-const old=clinical.event;clinical.event=null;recordClinical(old==='obstruction'?'Acodamiento corregido y colector revisado en el guion.':old==='contamination'?'Material contaminado sustituido en el guion.':'Docente finaliza la incidencia y autoriza continuar el caso simulado.');if(old==='obstruction')state.bag=75;render();}
-updateClinical(0);}
-function traceMonitor(){const canvas=$('#waveforms'),ctx=canvas.getContext('2d');if(!ctx)return;const w=canvas.width,h=canvas.height;ctx.clearRect(0,0,w,h);ctx.strokeStyle='#173d46';ctx.lineWidth=1;for(let x=0;x<w;x+=24){ctx.beginPath();ctx.moveTo(x,0);ctx.lineTo(x,h);ctx.stroke();}for(let y=0;y<h;y+=24){ctx.beginPath();ctx.moveTo(0,y);ctx.lineTo(w,y);ctx.stroke();}
-for(let row=0;row<2;row++){ctx.beginPath();ctx.strokeStyle=row?'#69cafa':'#63e2a5';ctx.lineWidth=2;for(let x=0;x<w;x++){const t=clinical.elapsed-(w-x)/85;let v;if(row)v=Math.sin(t*clinical.rr/60*Math.PI*2)*15;else{const phase=((t*clinical.hr/60)%1+1)%1;v=5*Math.exp(-Math.pow((phase-.16)/.04,2))-9*Math.exp(-Math.pow((phase-.36)/.017,2))+38*Math.exp(-Math.pow((phase-.40)/.015,2))-15*Math.exp(-Math.pow((phase-.44)/.022,2))+8*Math.exp(-Math.pow((phase-.65)/.08,2));}const y=(row?106:47)-v;x?ctx.lineTo(x,y):ctx.moveTo(x,y);}ctx.stroke();} }
-const baseReset=reset;reset=function(scenario=state.scenario){baseReset(scenario);resetClinical();};
-const baseAdvance=advance;advance=function(value){const n=Number(value);if(clinical.event||clinical.paused||busy||state.step!==7||done()||!Number.isFinite(n)||n<state.insertion||n>100)return false;clinical.target=n;return true;};
-const baseNavigate=navigate;navigate=function(n){if(clinical.event||clinical.paused)return false;return baseNavigate(n);};
-const baseMaterial=useMaterial;useMaterial=async function(id){if(clinical.event||clinical.paused){feedback('Atiende la incidencia o reanuda el paciente antes de continuar.',true);return false;}return baseMaterial(id);};
-const baseAction=mainAction;mainAction=async function(){if(clinical.event||clinical.paused)return;return baseAction();};
-const baseReplay=replay;replay=async function(){if(clinical.event||clinical.paused)return;return baseReplay();};
-document.addEventListener('click',e=>{const trigger=e.target.closest('[data-incident]');if(trigger)setIncident(trigger.dataset.incident);const action=e.target.closest('[data-clinical]');if(action)handleClinical(action.dataset.clinical);});
-$('#clinical-pause').onclick=()=>{clinical.paused=!clinical.paused;if(busy&&clinical.paused&&!paused)$('#pause').click();$('#clinical-pause').textContent=clinical.paused?'Reanudar paciente':'Pausar paciente';$('#clinical-pause').setAttribute('aria-pressed',String(clinical.paused));if(!clinical.paused){if(busy&&paused)$('#pause').click();renderGuide();}updateClinical(0);};
-$('#patient-audio').onclick=()=>{clinical.voice=!clinical.voice;$('#patient-audio').textContent=clinical.voice?'Voz activada':'Activar voz';$('#patient-audio').setAttribute('aria-pressed',String(clinical.voice));if(clinical.voice){const message=clinical.lastMessage;clinical.lastMessage='';sayClinical(message);}else window.speechSynthesis?.cancel();};
-if(!('speechSynthesis' in window)){$('#patient-audio').disabled=true;$('#patient-audio').textContent='Voz no disponible';}
-$('#clinical-camera').onclick=()=>{const expanded=$('#breathing-view').classList.toggle('expanded');$('#clinical-camera').textContent=expanded?'Reducir vista del maniquí':'Ampliar vista del maniquí';};
-$('#stop').addEventListener('click',()=>handleClinical('stop'));
-resetClinical();let lastClinical=null;function clinicalFrame(now){const dt=lastClinical===null?0:Math.min((now-lastClinical)/1000,.1);lastClinical=now;updateClinical(dt);traceMonitor();requestAnimationFrame(clinicalFrame);}requestAnimationFrame(clinicalFrame);
+
+/** Decorative pulse/respiration trace. Not an ECG or diagnostic signal. */
+export class MonitorTrace {
+  constructor(canvas) {
+    this.canvas = canvas;
+    this.ctx = canvas?.getContext?.('2d') || null;
+    this.snapshot = {hr: 80, rr: 16, elapsed: 0, paused: true};
+    this._stamp = globalThis.performance?.now?.() || 0;
+    this._disposed = false;
+    this._frame = null;
+    this._motion = globalThis.matchMedia?.('(prefers-reduced-motion: reduce)');
+    this._draw = this._draw.bind(this);
+    if (this.ctx && typeof requestAnimationFrame === 'function') this._frame = requestAnimationFrame(this._draw);
+  }
+
+  update(snapshot = {}) {
+    this.snapshot = snapshot || {};
+    this._stamp = globalThis.performance?.now?.() || 0;
+  }
+
+  _draw(now) {
+    if (this._disposed || !this.ctx || !this.canvas) return;
+    const canvas = this.canvas, ctx = this.ctx;
+    const dpr = Math.min(globalThis.devicePixelRatio || 1, 1.5);
+    const width = Math.max(100, canvas.clientWidth || 420);
+    const height = Math.max(50, canvas.clientHeight || 108);
+    const pw = Math.round(width * dpr), ph = Math.round(height * dpr);
+    if (canvas.width !== pw || canvas.height !== ph) { canvas.width = pw; canvas.height = ph; }
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    ctx.clearRect(0, 0, width, height);
+    const bg = ctx.createLinearGradient(0, 0, 0, height);
+    bg.addColorStop(0, '#071c27'); bg.addColorStop(1, '#081923');
+    ctx.fillStyle = bg; ctx.fillRect(0, 0, width, height);
+    ctx.strokeStyle = '#15313d'; ctx.lineWidth = 0.5;
+    ctx.beginPath();
+    for (let x = 0; x < width; x += 22) { ctx.moveTo(x, 0); ctx.lineTo(x, height); }
+    for (let y = 0; y < height; y += 18) { ctx.moveTo(0, y); ctx.lineTo(width, y); }
+    ctx.stroke();
+    const s = this.snapshot, vitals = s.vitals || s;
+    const hr = Math.max(20, Math.min(220, Number(vitals.hr) || 80));
+    const rr = Math.max(4, Math.min(60, Number(vitals.rr) || 16));
+    const elapsed = Math.max(0, Number(s.elapsed) || 0);
+    const time = this._motion?.matches ? 0 : elapsed + (s.paused ? 0 : Math.max(0, now - this._stamp) / 1000);
+    const windowSeconds = 7;
+    const gauss = (x, center, spread) => Math.exp(-Math.pow((x - center) / spread, 2));
+    for (let row = 0; row < 2; row++) {
+      const baseline = height * (row ? 0.78 : 0.37);
+      const amplitude = height * (row ? 0.105 : 0.27);
+      const color = row ? '#6bb9e1' : '#5cdab6';
+      ctx.beginPath();
+      ctx.lineWidth = row ? 1.5 : 1.8;
+      ctx.strokeStyle = color;
+      ctx.shadowColor = color;
+      ctx.shadowBlur = 4;
+      for (let x = 0; x <= width; x += 1.5) {
+        const t = time - (1 - x / width) * windowSeconds;
+        const phase = ((t * hr / 60) % 1 + 1) % 1;
+        const value = row ? Math.sin(t * rr / 60 * Math.PI * 2) : gauss(phase, 0.23, 0.075) + 0.30 * gauss(phase, 0.48, 0.13) - 0.10 * gauss(phase, 0.40, 0.025);
+        const y = baseline - value * amplitude;
+        if (!x) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+      }
+      ctx.stroke();
+      ctx.shadowBlur = 0;
+      ctx.fillStyle = color;
+      ctx.font = '9px ui-monospace, monospace';
+      ctx.fillText(row ? 'RESP' : 'PULSO', 7, row ? height * 0.61 : 12);
+    }
+    this._frame = requestAnimationFrame(this._draw);
+  }
+
+  dispose() {
+    this._disposed = true;
+    if (this._frame !== null && typeof cancelAnimationFrame === 'function') cancelAnimationFrame(this._frame);
+  }
+}

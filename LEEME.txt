@@ -1,30 +1,73 @@
-VÉSICA — CÓDIGO COMPLETO ACTUALIZADO
+VÉSICA — ESTACIÓN INTERACTIVA DE CATETERISMO VESICAL
 
-CÓMO ABRIR
-1. Descomprime toda la carpeta.
-2. Abre index.html en Chrome, Edge o Firefox.
-3. Para editar, abre la carpeta en Visual Studio Code.
-No necesita npm ni una compilación.
-Opcional: usa la extensión Live Server de VS Code, o ejecuta:
-python -m http.server 8000
-Luego abre http://localhost:8000.
+INICIAR
+Desde la carpeta del proyecto:
+  python3 -m http.server 8000 --bind 0.0.0.0
+Abre el sitio servido por ese servidor en un navegador con JavaScript.
+Los módulos ES requieren HTTP: no abrir index.html con file://.
+No necesita npm, compilación, base de datos, claves ni servicios externos.
+Three.js 0.180.0 está incluido localmente en vendor/ (licencia MIT).
+
+PRÁCTICA
+Cuatro casos: retención aguda, posoperatorio femenino con alergia al látex,
+resistencia al avance y trauma pélvico con sospecha de lesión uretral.
+Cada caso se inicia con un clic que habilita el audio del navegador.
+La voz está activada por defecto. Usa voz española del dispositivo si existe,
+o respuestas sintéticas locales en MP3. Los subtítulos siempre muestran el guion.
+La voz local es sintética; no es una grabación humana ni una evaluación acústica.
+
+En Evaluación, decide y revisa el resultado al cerrar el caso. Con guía añade
+recordatorios y destaca acciones que comprometen la seguridad. Puedes cometer
+omisiones y errores: el guion conserva las consecuencias y no borra un fallo
+crítico tras una respuesta posterior adecuada. La puntuación corresponde a
+criterios demostrados del caso, no a certificación de competencia.
+
+En la anatomía, arrastra para girar y usa rueda/pellizco para acercar. Selecciona
+etiquetas para explorar. Alterna superficie/anatomía y vistas frontal/oblicua/
+detalle. El modelo es procedural y esquemático, no anatomía validada.
+El porcentaje de inserción no representa centímetros ni fuerza física.
+
+Puedes detener, reevaluar, explicar o solicitar ayuda durante el procedimiento.
+El control docente introduce una respuesta vagal programada desde inserción.
+La pausa detiene reloj, evolución y voz; ocultar la pestaña pausa el caso.
+Al finalizar se muestran criterios, omisiones, fallos críticos y reflexión.
+El registro puede descargarse en JSON. No hay envío de datos a un servidor.
+Al reiniciar o recargar se pierde el intento si no lo exportaste.
+
+PRUEBAS (Node.js 22 o posterior; 24 disponible en el entorno)
+  node --test tests/*.test.mjs
+Pruebas funcionales del navegador (requiere Python Playwright y Chromium):
+  python3 tests/browser_smoke.py
+El servidor de desarrollo debe estar activo en el puerto 8000 para la prueba.
+Los binarios de Chromium y Playwright ya están disponibles en el entorno cloud.
 
 ARCHIVOS
-index.html: estructura, textos y paneles.
-style.css: diseño, colores y animaciones visuales.
-app.js: etapas del procedimiento, materiales y esquemas.
-clinical.js: monitor, respuestas programadas, voz, drenaje e incidencias.
-assets/: imágenes necesarias para las escenas y los materiales.
+index.html       estructura accesible, estación, diálogos y fuentes
+style.css        interfaz adaptable a ordenador y móvil
+app.js           interacción, escenas, evaluación y exportación
+engine.js        casos, reglas, eventos y trayectorias docentes ilustrativas
+clinical.js      voz nativa/local y trazado decorativo del monitor
+scene.js         anatomía y sistema de drenaje 3D con Three.js
+assets/voice/    respuestas sintéticas locales y catálogo de frases
+CLINICAL_SOURCES.md  reglas, referencias y límites de validación
 
-USO
-Selecciona el escenario masculino, femenino o de trauma.
-Completa las etapas en orden. Usa Pausar paciente para detener la evolución.
-En inserción, el deslizador marca el destino de un avance gradual.
-Abre Control del expositor para activar incidencias en las etapas habilitadas.
-La voz requiere pulsar Activar voz y depende de las voces del navegador.
-Los cambios locales no actualizan automáticamente el sitio publicado.
+REGENERAR LA VOZ (solo si cambia el diálogo del motor)
+  python3 scripts/generate_voice.py
+Requiere Linux x86_64, Python, ffmpeg y acceso a pypi.org/files.pythonhosted.org.
+El script descarga espeakng-loader 0.2.4, verifica su SHA-256 publicado y genera
+los clips en español. Esta herramienta no es necesaria para ejecutar el sitio.
 
-ALCANCE
+ALCANCE Y REVISIÓN CLÍNICA
 Proyecto académico estudiantil no oficial, sin aval institucional.
-Simulación 2D con guiones docentes, no modelo fisiológico validado ni equipo
-clínico de alta fidelidad. Los valores y tiempos son ilustrativos.
+No es un producto sanitario ni un modelo fisiológico validado. Las respuestas,
+valores, daño y tiempos son guiones ilustrativos. Una buena evolución del monitor
+no demuestra técnica segura; una contaminación no produce sepsis instantánea.
+Las dosis, dispositivos, soluciones y decisiones reales siguen el protocolo local
+y las instrucciones del fabricante, con supervisión competente.
+
+No se puede afirmar una fiabilidad del 100 %. Las referencias oficiales figuran
+en CLINICAL_SOURCES.md, pero su consulta vigente quedó bloqueada por la red del
+entorno durante este desarrollo. Antes de una evaluación formal se requiere
+verificación documental, revisión clínica/anatómica, validación de la rúbrica y
+pruebas con docentes y estudiantes. Las pruebas de software no equivalen a esa
+validación. Los cambios locales no actualizan automáticamente el sitio publicado.

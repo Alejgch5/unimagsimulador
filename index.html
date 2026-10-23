@@ -1,213 +1,77 @@
 <!doctype html>
 <html lang="es">
-
 <head>
-    <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width,initial-scale=1">
-    <title>CLINICA · Cateterismo vesical</title>
-    <link rel="preload" as="image" href="assets/hygiene.png">
-    <meta name="description"
-        content="Practica cateterismo vesical con un maniquí virtual, monitor animado, respuestas programadas, drenaje e incidencias docentes.">
-    <meta name="theme-color" content="#122b37">
-    <link rel="icon" type="image/png" href="./assets/Escudo_unimag_sm.png">
-    <link rel="stylesheet" href="style.css">
-    <script src="app.js" defer></script>
-    <script src="clinical.js" defer></script>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#102d3c">
+  <meta name="description" content="Estación interactiva de cateterismo vesical: anatomía 3D, paciente con voz, decisiones y reflexión clínica.">
+  <title>VÉSICA · Simulación clínica</title>
+  <link rel="icon" href="assets/Escudo_unimag_sm.png">
+  <link rel="stylesheet" href="style.css">
+  <script type="module" src="app.js"></script>
 </head>
-<style>
-    header .brand-logo {
-        width: 48px !important;
-        height: 48px !important;
-        max-width: 48px;
-        max-height: 48px;
-        object-fit: contain;
-    }
-</style>
-
 <body>
-    <header><a class="brand" href="#"> <img class="brand-logo" src="./assets/Escudo_unimag_sm.png"
-                alt="Escudo Universidad del Magdalena"><span>Universidad del Magdalena<span class="brand-sub">SIMULACIÓN
-                    CLÍNICA · PROCEDIMIENTOS BASICOS</span></span></a><span class="header-label">MANIQUÍ VIRTUAL ·
-            RESPUESTA PROGRAMADA</span></header>
-    <main>
-        <div class="title-row">
-            <div>
-                <p class="eyebrow">ESTACIÓN 01 / CUIDADO UROLÓGICO</p>
-                <h1>Cateterismo vesical</h1>
-            </div>
-            <div class="scenario-control"><label for="scenario">Maniquí / escenario</label><select id="scenario">
-                    <option value="male">Hombre · Retención urinaria</option>
-                    <option value="female">Mujer · Retención posoperatoria</option>
-                    <option value="trauma">Trauma · Señal de alarma</option>
-                </select></div>
-        </div>
-        <section class="clinical-monitor" id="clinical-monitor" aria-label="Monitor del paciente simulado">
-            <div class="monitor-heading"><span>MONITOR DOCENTE <b>DATOS SIMULADOS</b></span><span>Tiempo de escenario
-                    <time id="clinical-clock">00:00</time></span></div>
-            <div class="monitor-grid">
-                <div class="trace-panel"><canvas id="waveforms" width="600" height="144"
-                        aria-label="Trazados ilustrativos de pulso y respiración"></canvas><span>Ritmo y respiración
-                        ilustrativos · sin interpretación diagnóstica</span></div>
-                <div class="vital green"><span>FC <small>lpm</small></span><strong id="v-hr">104</strong></div>
-                <div class="vital blue"><span>FR <small>rpm</small></span><strong id="v-rr">22</strong></div>
-                <div class="vital"><span>PA <small>mmHg · guion</small></span><strong id="v-bp">154/88</strong></div>
-                <div class="vital gold"><span>Dolor <small>referido</small></span><strong id="v-pain">8/10</strong>
-                </div>
-            </div>
-            <div class="monitor-bottom"><span id="patient-status"></span><button id="clinical-pause"
-                    aria-pressed="false">Pausar paciente</button></div>
-        </section>
-        <section class="clinical-alert" id="clinical-alert" hidden><strong>INCIDENCIA ACTIVA</strong>
-            <p id="clinical-alert-text"></p>
-            <div class="response-buttons"><button data-clinical="stop">1. Detener maniobra</button><button
-                    data-clinical="assess">2. Valorar y revisar</button><button data-clinical="call">3. Solicitar
-                    ayuda</button><button data-clinical="resume" id="clinical-resume" disabled>Docente: resolver
-                    incidencia</button></div><small>Resolver representa la intervención del docente; no enseña a tratar
-                la complicación.</small>
-        </section>
-        <div class="lab">
-            <section class="stage-column" aria-label="Estación de simulación">
-                <div class="stage-toolbar">
-                    <div><span class="live-dot"></span><span id="camera-name">Sala de simulación</span></div>
-                    <div class="toolbar-actions"><label for="speed">Velocidad</label><select id="speed">
-                            <option value="1">1×</option>
-                            <option value="0.5">0,5×</option>
-                            <option value="0.75">0,75×</option>
-                        </select><button id="pause" aria-label="Pausar animación" disabled>Pausar</button><button
-                            id="fullscreen" aria-label="Ampliar escena">⛶</button></div>
-                </div>
-                <div class="stage" id="stage"><img class="room" src="assets/clinic.png"
-                        alt="Sala virtual con maniquí adulto sobre una camilla y bandeja de materiales">
-                    <div class="room-shade"></div><span class="view-badge" id="view-badge">VISTA GENERAL</span>
-                    <div id="scene"></div>
-                    <div class="caption" id="caption" role="status"></div>
-                    <div class="animation-track">
-                        <div id="animation-progress"></div>
-                    </div>
-                </div>
-                <div class="transport"><button id="replay" class="quiet">↻ Repetir animación</button><span
-                        id="stage-state">Explora la estación</span><button id="reset" class="quiet">Reiniciar
-                        práctica</button></div>
-                <section class="patient-response" aria-label="Respuesta del maniquí">
-                    <div class="patient-view" id="breathing-view"><img src="assets/clinic.png"
-                            alt="Vista de la sala con maniquí; movimiento ilustrativo de respiración"><span>RESPIRACIÓN
-                            SIMULADA</span></div>
-                    <div class="patient-dialogue"><span class="eyebrow">RESPUESTA DEL PACIENTE · GUION</span>
-                        <p id="patient-voice" aria-live="polite"></p>
-                        <div class="response-buttons"><button id="patient-audio" aria-pressed="false">Activar
-                                voz</button><button data-clinical="reassure">Explicar y tranquilizar</button><button
-                                id="clinical-camera">Ampliar vista del maniquí</button></div>
-                    </div>
-                </section>
-                <section class="fluid-panel" aria-label="Drenaje del caso simulado">
-                    <div class="fluid-reservoir">
-                        <div class="fluid-level" id="reservoir-fill"></div><span>Vejiga<br><b id="v-bladder">900
-                                mL</b></span>
-                    </div>
-                    <div class="fluid-middle">
-                        <div id="fluid-connection"></div>
-                        <p id="drainage-state">Esperando acceso a la vejiga</p><small>Volumen y tiempo de evolución
-                            programados; no equivalen a diuresis horaria.</small>
-                    </div>
-                    <div class="fluid-reservoir collector">
-                        <div class="fluid-level" id="collector-fill"></div><span>Colector<br><b><span
-                                    id="v-drain">0</span> mL</b></span>
-                    </div>
-                </section>
-                <section class="tray-section">
-                    <div class="tray-heading">
-                        <h2>Bandeja de materiales</h2><span>Selecciona o arrastra un material a la escena.</span>
-                    </div>
-                    <div class="tray" id="tray"></div>
-                </section>
-            </section>
-            <aside class="guide" aria-label="Guía del procedimiento">
-                <div class="guide-top"><span id="step-number"></span><span class="guided-badge">GUIADO</span></div>
-                <h2 id="step-title"></h2>
-                <p id="instruction"></p>
-                <div id="controls"></div>
-                <div id="feedback" aria-live="polite"></div>
-                <div class="why"><span>QUÉ ESTÁS HACIENDO</span>
-                    <p id="explanation"></p>
-                </div><button id="next" class="primary" disabled>Siguiente paso →</button><button id="stop"
-                    class="stop-button">Detener y pedir ayuda</button>
-            </aside>
-        </div>
-        <details class="instructor-panel">
-            <summary>Control del expositor · activar respuestas del maniquí</summary>
-            <p>Activa un evento durante la etapa correspondiente. El monitor y el flujo cambian; el avance queda
-                bloqueado hasta atenderlo.</p>
-            <div class="incident-buttons"><button data-incident="resistance">Resistencia · inserción</button><button
-                    data-incident="vagal">Respuesta vagal · desde inserción</button><button
-                    data-incident="obstruction">Acodamiento · con retorno de orina</button><button
-                    data-incident="contamination">Contaminación · campo a lubricación</button></div>
-            <p class="control-hint">Cada evento es un guion deliberado. La técnica correcta no garantiza estos valores
-                ni excluye complicaciones en un paciente.</p>
-        </details>
-        <section class="clinical-summary" id="clinical-summary" hidden>
-            <h2>Reflexión de la práctica</h2>
-            <p id="summary-text"></p>
-            <p>¿Se mantuvo la esterilidad? ¿Qué cambió en el paciente? ¿Qué comprobaste antes de inflar el balón? ¿Qué
-                comunicarías con SAER?</p>
-        </section>
-        <details class="event-log">
-            <summary>Registro de respuestas y decisiones</summary>
-            <ol id="clinical-log"></ol>
-        </details>
-        <section class="sequence">
-            <div class="sequence-top">
-                <h2>Tu recorrido</h2><span id="overall"></span>
-            </div>
-            <nav id="timeline" aria-label="Etapas del procedimiento"></nav>
-        </section>
-        <footer>
-            <p>Maniquí virtual con respuestas fisiológicas programadas, monitor y drenaje animados. No es un modelo
-                fisiológico validado ni un equipo de alta fidelidad: no reproduce tacto ni resistencia física. Valores
-                ilustrativos y tiempo de drenaje abreviado. Requiere revisión y acompañamiento docente. Proyecto
-                académico estudiantil no oficial, sin aval institucional.</p>
-            <details>
-                <summary>Fuentes, anatomía y alcance</summary>
-                <p>Escena ilustrativa con maniquí. Los esquemas son funcionales y no están a escala; no permiten
-                    calcular profundidad, fuerza o volumen. Técnica y materiales según protocolo institucional y
-                    fabricante. Revisión docente pendiente. Respuestas programadas para la exposición; no usar para
-                    tomar decisiones clínicas.</p>
-                <ul>
-                    <li><a href="https://cdn.unimagdalena.edu.co/" target="_blank" rel="noopener">Universidad del
-                            Magdalena · Referencia de colores institucionales</a></li>
-                    <li><a href="https://www.msdmanuals.com/professional/injuries-poisoning/genitourinary-tract-trauma/urethral-trauma"
-                            target="_blank" rel="noopener">MSD · Trauma uretral y valoración previa</a></li>
-                    <li><a href="https://www.cdc.gov/infection-control/hcp/cauti/summary-of-recommendations.html"
-                            target="_blank" rel="noopener">CDC · Prevención de infección asociada al catéter</a></li>
-                    <li><a href="https://www.merckmanuals.com/professional/genitourinary-disorders/how-to-do-genitourinary-procedures/how-to-do-urethral-catheterization-in-a-male"
-                            target="_blank" rel="noopener">MSD/Merck · Cateterismo masculino</a></li>
-                    <li><a href="https://www.msdmanuals.com/professional/genitourinary-disorders/how-to-do-genitourinary-procedures/how-to-do-urethral-catheterization-in-a-female"
-                            target="_blank" rel="noopener">MSD · Cateterismo femenino</a></li>
-                    <li><a href="https://www.ncbi.nlm.nih.gov/books/NBK593198/" target="_blank" rel="noopener">Open RN ·
-                            Nursing Skills, capítulo 21</a></li>
-                    <li><a href="https://www.who.int/docs/default-source/patient-safety/how-to-handrub-poster.pdf"
-                            target="_blank" rel="noopener">OMS · Técnica de fricción de manos</a></li>
-                </ul>
-            </details>
-        </footer>
-    </main>
-    <dialog id="help-dialog">
-        <div class="dialog-content">
-            <p class="eyebrow">PAUSA DE SEGURIDAD</p>
-            <h2>Detén la maniobra.</h2>
-            <p>Ante dolor intenso, resistencia, sangrado o posición incierta, no fuerces ni infles el balón. Solicita
-                valoración cualificada. Este simulador no enseña a resolver una inserción difícil.</p>
-            <p>El maniquí está en pausa. Puedes volver a la demostración cuando hayas revisado la señal de alarma.</p>
-            <button class="primary" id="close-help">Volver a la demostración</button>
-        </div>
-    </dialog>
-    <dialog id="reset-dialog">
-        <div class="dialog-content">
-            <h2>¿Reiniciar la práctica?</h2>
-            <p>Se borrarán las acciones de este intento.</p>
-            <div class="dialog-actions"><button id="cancel-reset" class="secondary">Continuar aquí</button><button
-                    id="confirm-reset" class="primary">Reiniciar</button></div>
-        </div>
-    </dialog>
-</body>
+  <a class="skip-link" href="#decision-panel">Ir a las decisiones clínicas</a>
+  <header class="topbar">
+    <a class="brand" href="./" aria-label="Vésica, inicio"><span class="brand-icon" aria-hidden="true">✚</span><span>VÉSICA<small>LABORATORIO DE SIMULACIÓN CLÍNICA</small></span></a>
+    <div class="institution"><img src="assets/Escudo_unimag_sm.png" alt=""><span>Universidad del Magdalena<small>Proyecto académico estudiantil</small></span></div>
+    <button class="text-button" id="methodology-open"><span aria-hidden="true">ⓘ</span> Acerca del modelo</button>
+  </header>
+  <main>
+    <section class="page-heading">
+      <div><p class="eyebrow">PROCEDIMIENTOS / ESTACIÓN 01</p><h1>Cateterismo vesical<span class="version-tag">3D</span></h1><p class="page-description">Observa. Decide. Escucha al paciente.</p></div>
+      <div class="session-controls"><label for="case-select">CASO CLÍNICO</label><select id="case-select" aria-label="Seleccionar caso clínico"></select><div class="mode-switch" role="group" aria-label="Modo de práctica"><button id="mode-evaluation" aria-pressed="true">Evaluación</button><button id="mode-guided" aria-pressed="false">Con guía</button></div></div>
+    </section>
 
+    <section class="monitor" aria-label="Monitor del paciente, valores simulados">
+      <div class="monitor-label"><span><i class="live-dot"></i> MONITOR DEL PACIENTE <small>GUION DOCENTE</small></span><span class="monitor-time">TIEMPO <time id="elapsed">00:00</time><button id="pause-session" class="monitor-button" aria-label="Pausar paciente" aria-pressed="false">Ⅱ</button></span></div>
+      <div class="monitor-values">
+        <div class="wave-panel"><canvas id="waveforms" width="640" height="120" aria-label="Trazo ilustrativo de pulso y respiración"></canvas><span id="monitor-status">Paciente en espera de valoración</span></div>
+        <div class="vital green"><span>FRECUENCIA CARDÍACA</span><div><strong id="v-hr">—</strong><small>lpm</small></div><em id="trend-hr">Al ingreso</em></div>
+        <div class="vital cyan"><span>FRECUENCIA RESPIRATORIA</span><div><strong id="v-rr">—</strong><small>rpm</small></div><em id="trend-rr">Al ingreso</em></div>
+        <div class="vital white"><span>PRESIÓN ARTERIAL</span><div><strong id="v-bp">—</strong><small>mmHg</small></div><em id="trend-bp">Al ingreso</em></div>
+        <div class="vital amber"><span>DOLOR REFERIDO</span><div><strong id="v-pain">—</strong><small>/ 10</small></div><em id="trend-pain">Escucha al paciente</em></div>
+      </div>
+    </section>
+
+    <nav class="mobile-jump-nav" aria-label="Navegación de la estación"><a href="#decision-panel">Tomar decisiones ↓</a><a href="#patient-dialogue">Escuchar al paciente</a><a href="#scene-viewport">Anatomía 3D</a></nav>
+    <section class="workspace">
+      <div class="scene-column">
+        <section class="scene-card" aria-label="Exploración anatómica 3D">
+          <div class="scene-toolbar"><div class="layer-switch" role="group" aria-label="Capas anatómicas"><button data-layer="surface" aria-pressed="false">Superficie</button><button data-layer="anatomy" aria-pressed="true">Anatomía</button></div><div class="view-controls"><button data-view="front" title="Vista frontal">Frente</button><button data-view="oblique" title="Vista oblicua">Oblicua</button><button data-view="detail" title="Acercar al procedimiento">Detalle</button><button id="fullscreen" aria-label="Ampliar escena">⛶</button></div></div>
+          <div class="scene-viewport" id="scene-viewport"><div id="scene-3d"></div><div class="scene-badge"><span class="scene-dot"></span> ANATOMÍA INTERACTIVA <b>3D</b></div><div class="orientation">S<span>↕</span>I</div><div class="scene-loading" id="scene-loading">Preparando estación anatómica…</div><div class="structure-info" id="structure-info" hidden><button id="structure-close" aria-label="Cerrar información anatómica">×</button><span class="eyebrow">EXPLORAR ANATOMÍA</span><strong id="structure-title"></strong><p id="structure-description"></p></div><div class="scene-hint"><span aria-hidden="true">↔</span> Arrastra para girar · Acerca con dos dedos o la rueda · Toca una estructura</div></div>
+          <div class="scene-caption"><span><i class="legend-dot bladder"></i> Vejiga</span><span><i class="legend-dot urethra"></i> Uretra</span><span><i class="legend-dot catheter"></i> Sonda</span><small>Modelo esquemático · sin escala</small></div>
+        </section>
+        <section class="patient-card" aria-label="Comunicación con el paciente"><div class="patient-avatar" id="patient-avatar" aria-hidden="true"><svg viewBox="0 0 56 56"><circle cx="28" cy="20" r="10"/><path d="M10 51v-8c0-18 36-18 36 0v8"/></svg><i></i></div><div class="patient-message"><div class="patient-message-head"><span id="patient-name">PACIENTE SIMULADO</span><button id="voice-toggle" aria-pressed="true" title="Activar o silenciar voz">◖)) Voz activa</button></div><p id="patient-dialogue" role="status">«Estoy esperando que me atiendan.»</p><span id="voice-status">Voz preparada · se habilita al iniciar el caso</span></div></section>
+        <div class="communication-actions"><button data-global="explain">◌ Explicar y tranquilizar</button><button data-global="assess">♡ Reevaluar al paciente</button><button data-global="stop">Ⅱ Detener maniobra</button><button data-global="call_help">✚ Solicitar ayuda</button></div>
+        <section class="drainage-card" aria-label="Observación del sistema de drenaje"><div><span class="eyebrow">SISTEMA CERRADO</span><strong id="drainage-status">Sin retorno observado</strong><small id="drainage-detail">Observa la orina y comprueba la posición antes del balón.</small></div><div class="drainage-reading"><strong id="drainage-volume">0</strong><span>mL simulados</span></div><div class="fluid-track"><div id="fluid-fill"></div></div></section>
+      </div>
+
+      <aside class="decision-panel" id="decision-panel" aria-label="Decisiones del estudiante" tabindex="-1">
+        <div class="decision-heading"><span class="eyebrow">TU DECISIÓN IMPORTA</span><span id="step-counter">01 / 12</span></div>
+        <div class="step-progress"><div id="step-progress-fill"></div></div>
+        <h2 id="step-title">Valora a la persona</h2><p id="step-description"></p>
+        <div class="case-strip"><span class="case-avatar" aria-hidden="true">✚</span><div><strong id="case-name"></strong><small id="case-summary"></small></div><button id="case-detail-open" aria-label="Consultar historia del caso">↗</button></div>
+        <div class="event-banner" id="event-banner" role="alert" hidden><span id="event-title"></span><p id="event-description"></p></div>
+        <div class="feedback" id="feedback" role="status" hidden></div>
+        <div class="insertion-control" id="insertion-control" hidden><label for="insertion-target">Destino del avance <output id="insertion-output">0 %</output></label><input type="range" id="insertion-target" min="0" max="100" step="5" value="0"><div><span>Inicio</span><span>Avance representado · sin escala</span></div></div>
+        <div class="action-list" id="action-list"></div>
+        <div class="guide-note" id="guide-note" hidden><span>RAZONAMIENTO CLÍNICO</span><p id="guide-text"></p></div>
+        <button class="next-button" id="next-step" disabled>Continuar a la siguiente etapa <span>→</span></button>
+        <p class="decision-note" id="decision-note">El caso responde a tus decisiones. La revisión aparece al finalizar.</p>
+      </aside>
+    </section>
+
+    <section class="journey"><div class="section-heading"><div><p class="eyebrow">EL PROCEDIMIENTO</p><h2>Recorrido de la práctica</h2></div><button id="reset-session" class="text-button">↻ Nuevo intento</button></div><ol id="timeline" class="timeline"></ol></section>
+    <details class="instructor-tools"><summary>Control docente · incidencia programada</summary><p>Introduce una respuesta vagal durante la inserción o después. Es un evento del guion; no una consecuencia obligatoria de un error.</p><button id="trigger-vagal" class="text-button" disabled>Introducir mareo con bradicardia</button></details>
+    <section class="review-section"><div class="review-tabs" role="tablist" aria-label="Registro de la práctica"><button id="tab-log" role="tab" aria-selected="true" aria-controls="panel-log">Historia del intento <span id="log-count">0</span></button><button id="tab-debrief" role="tab" aria-selected="false" aria-controls="panel-debrief">Reflexión y resultados</button></div><div id="panel-log" role="tabpanel" aria-labelledby="tab-log"><div class="log-header"><p>Decisiones y respuestas del paciente, en orden temporal.</p><button id="export-log" class="text-button">↓ Exportar registro</button></div><ol id="clinical-log" class="clinical-log"></ol></div><div id="panel-debrief" role="tabpanel" aria-labelledby="tab-debrief" hidden><div id="debrief-content" class="debrief-content"><p>Al cerrar el caso encontrarás las decisiones acertadas, las omisiones y los incidentes de seguridad.</p></div></div></section>
+    <footer><span><b>VÉSICA</b> · Universidad del Magdalena</span><span>Simulación docente · respuestas programadas · sin validación clínica</span><button class="text-button" id="sources-open">Fuentes y alcance ↗</button></footer>
+  </main>
+
+  <dialog id="start-dialog" class="start-dialog" aria-labelledby="start-title"><form method="dialog"><div class="dialog-eyebrow"><span class="live-dot"></span> ESTACIÓN DE SIMULACIÓN · 01</div><h2 id="start-title">Tu paciente te está esperando.</h2><p class="dialog-intro">Escucha, valora y toma decisiones. Puedes completar el procedimiento o suspenderlo cuando el caso lo requiera.</p><div class="start-case"><span class="eyebrow" id="start-case-label"></span><h3 id="start-case-title"></h3><p id="start-case-brief"></p></div><div class="start-features"><span>◉ Anatomía 3D</span><span>◖)) Paciente con voz</span><span>↗ Decisiones y consecuencias</span></div><p class="audio-explanation">La voz está activada. Este primer clic permite que el navegador reproduzca el audio. Si no hay una voz española disponible, se usarán respuestas sintéticas locales.</p><button id="start-session" class="start-button" type="button">Entrar al caso con voz activa <span>→</span></button><small class="model-note">Prototipo educativo. Anatomía esquemática y valores ilustrativos; no predice la respuesta de una persona real.</small></form></dialog>
+  <dialog id="confirm-dialog" class="compact-dialog" aria-labelledby="confirm-title"><h2 id="confirm-title">¿Comenzar otro intento?</h2><p>Se reiniciarán el procedimiento, el monitor y el registro. Puedes exportar el registro antes de continuar.</p><div class="dialog-actions"><button id="confirm-cancel">Conservar intento</button><button id="confirm-restart" class="primary-button">Comenzar de nuevo</button></div></dialog>
+  <dialog id="case-dialog" class="compact-dialog" aria-labelledby="case-dialog-title"><button class="dialog-close" data-close="case-dialog" aria-label="Cerrar historia">×</button><p class="eyebrow">HISTORIA DEL CASO SIMULADO</p><h2 id="case-dialog-title"></h2><p id="case-dialog-history"></p><div id="case-findings"></div><p class="muted">Consulta la identidad, las alergias y los antecedentes con las acciones de valoración.</p></dialog>
+  <dialog id="methodology-dialog" class="methodology-dialog" aria-labelledby="methodology-title"><button class="dialog-close" data-close="methodology-dialog" aria-label="Cerrar fuentes">×</button><p class="eyebrow">TRANSPARENCIA DEL MODELO</p><h2 id="methodology-title">Una práctica para aprender a decidir.</h2><p>Los casos, las quejas y los signos son guiones docentes coherentes con las decisiones. Los cambios del monitor son ilustrativos: no son un modelo fisiológico ni garantizan la seguridad de una técnica en pacientes reales.</p><h3>Qué representa</h3><ul><li>Valoración, asepsia, inserción, comprobación del balón, drenaje y reevaluación.</li><li>Resistencia, dolor, lesión por fuerza o inflado prematuro y riesgo diferido por contaminación.</li><li>Reconocer cuándo suspender la instrumentación y solicitar evaluación especializada.</li></ul><h3>Límites</h3><p>La geometría 3D es esquemática y no está validada anatómicamente. El avance no representa centímetros ni fuerzas reales. La puntuación es una rúbrica del prototipo, no una certificación de competencia. No se simula sepsis inmediata por contaminación ni se diagnostican complicaciones mediante un único signo.</p><h3>Referencias de diseño clínico</h3><p class="source-status">La consulta web de estas guías está bloqueada por la red del entorno. La bibliografía y las reglas requieren verificación documental y revisión docente antes de usarse en una evaluación formal.</p><ul class="source-list"><li><a href="https://www.cdc.gov/infection-control/hcp/cauti/summary-of-recommendations.html" target="_blank" rel="noopener noreferrer">CDC · Prevención de infección asociada a catéter</a></li><li><a href="https://nurses.uroweb.org/guideline/indwelling-catheterisation-in-adults-urethral-and-suprapubic/" target="_blank" rel="noopener noreferrer">EAUN · Cateterización permanente en adultos</a></li><li><a href="https://www.auanet.org/guidelines-and-quality/guidelines/urotrauma-guideline" target="_blank" rel="noopener noreferrer">AUA · Urotrauma</a></li><li><a href="CLINICAL_SOURCES.md" target="_blank" rel="noopener">Notas clínicas y trazabilidad del prototipo</a></li></ul></dialog>
+  <noscript>Activa JavaScript para utilizar la estación de simulación.</noscript>
+</body>
 </html>

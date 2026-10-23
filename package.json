@@ -1,0 +1,15 @@
+{
+  "name": "vesica-clinical-simulator",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Prototipo educativo de cateterismo vesical con anatomía 3D y guiones clínicos ilustrativos.",
+  "scripts": {
+    "start": "python3 -m http.server 8000 --bind 0.0.0.0",
+    "test": "node --test tests/*.test.mjs",
+    "test:browser": "python3 tests/browser_smoke.py"
+  },
+  "engines": {
+    "node": ">=22"
+  }
+}
